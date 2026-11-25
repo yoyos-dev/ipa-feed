@@ -1,0 +1,98 @@
+# Every app your feed follows.
+#
+# Two kinds of entry:
+#
+#   [[source]]  — the developer already publishes an AltStore source.
+#                 The generator copies their app entries in as-is.
+#                 `only` limits it to apps whose name matches (optional).
+#
+#   [[github]]  — no source exists, so the generator builds an entry from
+#                 the repo's newest GitHub release that has a matching .ipa.
+#
+# Add or remove apps here, commit, and the next run picks it up.
+
+[feed]
+name = "Johan's Apps"
+identifier = "com.johan.ipafeed"
+subtitle = "Everything I sideload, kept up to date automatically"
+
+# ---------------------------------------------------------------- official sources
+
+[[source]]
+name = "Dusklight (Twilit Realm)"
+url = "https://twilitrealm.dev/apps.json"
+
+[[source]]
+name = "StikDebug"
+url = "https://stikdebug.xyz/index.json"
+only = ["StikDebug"]
+
+[[source]]
+name = "DolphiniOS"
+url = "https://altstore.oatmealdome.me"
+only = ["DolphiniOS"]
+
+[[source]]
+name = "BCD"
+url = "https://thebcd69.github.io/bcd-games/source.json"
+
+[[source]]
+name = "MuffinEMU"
+url = "https://muffinemu.github.io/MuffinEMU/apps.json"
+
+# Super Mario 64 Co-op (rebelancap/sm64coopdx-ios) is Apple Vision Pro only for
+# now; its iPhone source is an empty placeholder. Regular Mario 64 (Ghostship)
+# comes from the ports source below. If an iPhone build ships, add:
+#   url = "https://raw.githubusercontent.com/rebelancap/sm64coopdx-ios/main/sidestore/apps-ios.json"
+
+[[source]]
+name = "rebelancap ports (Zelda, Mario, GoldenEye, Quake...)"
+url = "https://raw.githubusercontent.com/rebelancap/all-ports/main/apps-ios.json"
+
+# ---------------------------------------------------------------- built from GitHub releases
+
+[[github]]
+name = "Madeira"
+repo = "willfaust/Madeira"
+asset = '\.ipa$'
+
+[[github]]
+name = "EspressU"
+repo = "EspressU/EspressU-Emu"
+asset = '\.ipa$'
+
+[[github]]
+name = "ARMSX3"
+repo = "ARMSX2/ARMSX3"
+asset = '\.ipa$'
+tag_prefix = "ios-"          # the repo also ships Android releases
+prerelease = true            # iOS builds are tagged as pre-releases
+
+[[github]]
+name = "Manic EMU"
+repo = "Manic-EMU/ManicEMU"
+asset = '\.ipa$'
+
+# ---------------------------------------------------------------- not wired up yet
+# I couldn't confirm where these publish IPAs. Uncomment and fill in `repo`
+# once you know the GitHub repo, or add their source as a [[source]].
+#
+# [[github]]
+# name = "Andarium"        # Android on iPhone, built on Kernarium
+# repo = "OWNER/REPO"
+# asset = '\.ipa$'
+#
+# [[github]]
+# name = "Utsuro"          # Xbox One translation layer by leviidev01
+# repo = "OWNER/REPO"
+# asset = '\.ipa$'
+#
+# [[github]]
+# name = "Hinoki"
+# repo = "OWNER/REPO"
+# asset = '\.ipa$'
+#
+# MeloNX is hosted on its own Git server, not GitHub.
+# Stremio, TwitchAdBlock and YTPlus are tweaked builds of other companies'
+# apps; those aren't published on GitHub. Use a tweaked-app source such as
+# AppTesters (https://repository.apptesters.org/) directly in LiveContainer.
