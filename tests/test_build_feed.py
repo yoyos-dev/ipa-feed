@@ -82,6 +82,67 @@ CONFIG = {
 }
 
 
+URL_IPAS = {
+    "https://andarium.example/andarium.ipa": fake_ipa("net.andarium.app", "1.1"),
+    "https://dl.example/apple/2.2.0/ios/stremio_iOS.ipa": fake_ipa("com.stremio.one", "2.2.0"),
+}
+PAGE = '<a href="https://dl.example/apple/2.2.0/ios/stremio_iOS.ipa">iOS</a>'
+
+
+class UrlNet(FakeNet):
+    def __init__(self, etag="abc"):
+        super().__init__()
+        self.etag = etag
+
+    def http_get(self, url, api=False, timeout=60):
+        if url == "https://page.example/downloads":
+            return PAGE.encode()
+        self.downloads.append(url)
+        return URL_IPAS[url]
+
+    def head(self, url):
+        return {"etag": self.etag, "content-length": "999"}
+
+
+URL_CONFIG = {
+    "feed": {"name": "Test", "identifier": "t"},
+    "url": [
+        {"name": "Andarium", "url": "https://andarium.example/andarium.ipa"},
+        {"name": "Stremio", "page": "https://page.example/downloads",
+         "pattern": r"https://dl\.example/apple/[^\"'\s]+/ios/stremio_iOS\.ipa",
+         "url": "https://dl.example/apple/2.1.3/ios/stremio_iOS.ipa"},
+    ],
+}
+
+
+class UrlTests(unittest.TestCase):
+    def run_build(self, previous=None, etag="abc"):
+        net = UrlNet(etag)
+        with mock.patch.object(build_feed, "get_json", net.get_json), \
+             mock.patch.object(build_feed, "http_get", net.http_get), \
+             mock.patch.object(build_feed, "head", net.head):
+            source, errors = build_feed.build(URL_CONFIG, previous)
+        return source, errors, net
+
+    def test_reads_ipa_and_finds_newest_link(self):
+        source, errors, _ = self.run_build()
+        self.assertEqual(errors, [])
+        by = {a["name"]: a for a in source["apps"]}
+        self.assertEqual(by["Andarium"]["bundleIdentifier"], "net.andarium.app")
+        self.assertEqual(by["Stremio"]["downloadURL"], "https://dl.example/apple/2.2.0/ios/stremio_iOS.ipa")
+        self.assertEqual(by["Stremio"]["versions"][0]["version"], "2.2.0")
+
+    def test_unchanged_file_not_redownloaded(self):
+        first, _, _ = self.run_build()
+        _, _, net = self.run_build(previous=first)
+        self.assertEqual(net.downloads, [])
+
+    def test_changed_file_is_redownloaded(self):
+        first, _, _ = self.run_build()
+        _, _, net = self.run_build(previous=first, etag="new")
+        self.assertEqual(len(net.downloads), 2)
+
+
 class BuildTests(unittest.TestCase):
     def run_build(self, config, previous=None):
         net = FakeNet()

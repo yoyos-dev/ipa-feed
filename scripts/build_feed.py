@@ -20,6 +20,7 @@ import plistlib
 import re
 import sys
 import tomllib
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -148,6 +149,70 @@ def app_from_github(entry: dict, cache: dict[str, dict]) -> dict:
     }
 
 
+def head(url: str) -> dict[str, str]:
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return {k.lower(): v for k, v in resp.headers.items()}
+
+
+def resolve_url(entry: dict) -> str:
+    """Find the newest download link on `page` matching `pattern`, else use `url`."""
+    if entry.get("page") and entry.get("pattern"):
+        try:
+            html = http_get(entry["page"]).decode("utf-8", "replace")
+            found = re.findall(entry["pattern"], html)
+            if found:
+                return found[0]
+        except Exception:
+            pass
+    if not entry.get("url"):
+        raise RuntimeError("no download link found and no fallback `url` set")
+    return entry["url"]
+
+
+def app_from_url(entry: dict, cache: dict[str, dict]) -> dict:
+    """An IPA at a plain download link. Re-read only when the file changes."""
+    url = resolve_url(entry)
+    h: dict[str, str] = {}
+    try:
+        h = head(url)
+        fingerprint = h.get("etag") or h.get("last-modified") or h.get("content-length") or ""
+        size = int(h.get("content-length") or 0)
+    except Exception:
+        fingerprint, size = "", 0
+
+    key = entry["name"]
+    cached = cache.get(key)
+    if cached and fingerprint and cached.get("_fingerprint") == fingerprint and cached.get("downloadURL") == url:
+        return cached
+
+    data = http_get(url, timeout=900)
+    bundle_id, version, min_os = bundle_id_from_ipa(data)
+    if not bundle_id:
+        raise RuntimeError(f"{url} has no Payload/*.app/Info.plist")
+    size = size or len(data)
+    date = h.get("last-modified") if fingerprint else None
+    ver = {"version": version or "0", "downloadURL": url, "size": size}
+    if date:
+        ver["date"] = date
+    if min_os:
+        ver["minOSVersion"] = min_os
+    return {
+        "name": entry["name"],
+        "bundleIdentifier": bundle_id,
+        "developerName": entry.get("developer", urllib.parse.urlparse(url).hostname),
+        "subtitle": entry.get("subtitle", ""),
+        "localizedDescription": entry.get("description", f"From {url}"),
+        "iconURL": entry.get("icon", ""),
+        "versions": [ver],
+        "version": ver["version"],
+        "downloadURL": url,
+        "size": size,
+        "_url_key": key,
+        "_fingerprint": fingerprint,
+    }
+
+
 # ---------------------------------------------------------------- main
 
 def build(config: dict, previous: dict | None) -> tuple[dict, list[str]]:
@@ -180,6 +245,17 @@ def build(config: dict, previous: dict | None) -> tuple[dict, list[str]]:
             errors.append(f"[github] {entry['name']}: {exc}")
             if entry["repo"] in cache:
                 apps.append(cache[entry["repo"]])
+
+    url_cache = {a["_url_key"]: a for a in (previous or {}).get("apps", []) if a.get("_url_key")}
+    for entry in config.get("url", []):
+        try:
+            a = app_from_url(entry, url_cache)
+            a["_origin"] = entry["name"]
+            apps.append(a)
+        except Exception as exc:
+            errors.append(f"[url] {entry['name']}: {exc}")
+            if entry["name"] in url_cache:
+                apps.append(url_cache[entry["name"]])
 
     # de-duplicate by bundle identifier, first one wins
     seen: set[str] = set()

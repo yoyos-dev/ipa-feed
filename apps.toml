@@ -73,26 +73,32 @@ name = "Manic EMU"
 repo = "Manic-EMU/ManicEMU"
 asset = '\.ipa$'
 
-# ---------------------------------------------------------------- not wired up yet
-# I couldn't confirm where these publish IPAs. Uncomment and fill in `repo`
-# once you know the GitHub repo, or add their source as a [[source]].
-#
-# [[github]]
-# name = "Andarium"        # Android on iPhone, built on Kernarium
-# repo = "OWNER/REPO"
-# asset = '\.ipa$'
-#
-# [[github]]
-# name = "Utsuro"          # Xbox One translation layer by leviidev01
-# repo = "OWNER/REPO"
-# asset = '\.ipa$'
-#
-# [[github]]
-# name = "Hinoki"
-# repo = "OWNER/REPO"
-# asset = '\.ipa$'
-#
+[[github]]
+name = "Hinoki"
+repo = "oledz-i/Hinoki"
+asset = '\.ipa$'
+
+[[github]]
+name = "Utsuro"
+repo = "Leviidev/Utsuro"
+asset = '\.ipa$'
+
+# ---------------------------------------------------------------- plain download links
+#   [[url]]  — an IPA at a normal link. Re-read only when the file changes.
+#              `page` + `pattern` (optional): scan a downloads page for the
+#              newest link; `url` is the fallback.
+
+[[url]]
+name = "Andarium"
+url = "https://andarium.net/andarium.ipa"   # always the latest build
+
+[[url]]
+name = "Stremio"
+page = "https://www.stremio.com/downloads"
+pattern = '''https://dl\.strem\.io/apple/[^"'\s]+/ios/stremio_iOS\.ipa'''
+url = "https://dl.strem.io/apple/2.1.3b28/ios/stremio_iOS.ipa"   # fallback: 2.1.3b28
+
+# ---------------------------------------------------------------- not included
 # MeloNX is hosted on its own Git server, not GitHub.
-# Stremio, TwitchAdBlock and YTPlus are tweaked builds of other companies'
-# apps; those aren't published on GitHub. Use a tweaked-app source such as
-# AppTesters (https://repository.apptesters.org/) directly in LiveContainer.
+# TwitchAdBlock and YouTube Plus are tweaked copies of other companies' apps,
+# which aren't published as IPAs on GitHub.
