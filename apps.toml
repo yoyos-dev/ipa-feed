@@ -19,6 +19,10 @@ subtitle = "Everything I sideload, kept up to date automatically"
 # ---------------------------------------------------------------- official sources
 
 [[source]]
+name = "Stremio (gorlev/stremio-altstore)"
+url = "https://raw.githubusercontent.com/gorlev/stremio-altstore/main/stremio-ios.json"
+
+[[source]]
 name = "Dusklight (Twilit Realm)"
 url = "https://twilitrealm.dev/apps.json"
 
@@ -71,6 +75,12 @@ prerelease = true            # iOS builds are tagged as pre-releases
 [[github]]
 name = "Manic EMU"
 repo = "Manic-EMU/ManicEMU"
+asset = 'SideloadJIT\.ipa$'   # e.g. ManicEMU.v2.0.2.SideloadJIT.ipa
+
+[[github]]
+name = "MeloNX"
+host = "starforgejo.dev"           # Forgejo server, same release API as GitHub
+repo = "projects/MeloNX"
 asset = '\.ipa$'
 
 [[github]]
@@ -92,13 +102,6 @@ asset = '\.ipa$'
 name = "Andarium"
 url = "https://andarium.net/andarium.ipa"   # always the latest build
 
-[[url]]
-name = "Stremio"
-page = "https://www.stremio.com/downloads"
-pattern = '''https://dl\.strem\.io/apple/[^"'\s]+/ios/stremio_iOS\.ipa'''
-url = "https://dl.strem.io/apple/2.1.3b28/ios/stremio_iOS.ipa"   # fallback: 2.1.3b28
-
 # ---------------------------------------------------------------- not included
-# MeloNX is hosted on its own Git server, not GitHub.
 # TwitchAdBlock and YouTube Plus are tweaked copies of other companies' apps,
 # which aren't published as IPAs on GitHub.

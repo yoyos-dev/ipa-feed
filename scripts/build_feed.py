@@ -96,9 +96,25 @@ def apps_from_source(entry: dict) -> list[dict]:
     return apps
 
 
+def repo_key(entry: dict) -> str:
+    host = entry.get("host", "github.com")
+    return entry["repo"] if host == "github.com" else f"{host}/{entry['repo']}"
+
+
+def releases_url(entry: dict) -> tuple[str, bool]:
+    """GitHub API, or the Gitea/Forgejo API (same release format) for other hosts."""
+    host = entry.get("host", "github.com")
+    if host == "github.com":
+        return f"https://api.github.com/repos/{entry['repo']}/releases?per_page=30", True
+    return f"https://{host}/api/v1/repos/{entry['repo']}/releases?limit=30", False
+
+
 def app_from_github(entry: dict, cache: dict[str, dict]) -> dict:
     repo = entry["repo"]
-    releases = get_json(f"https://api.github.com/repos/{repo}/releases?per_page=30", api=True)
+    host = entry.get("host", "github.com")
+    key = repo_key(entry)
+    url, is_github = releases_url(entry)
+    releases = get_json(url, api=is_github)  # never send the GitHub token elsewhere
     picked = pick_release(releases, entry)
     if not picked:
         raise RuntimeError(f"no release in {repo} has an asset matching {entry.get('asset')!r}")
@@ -106,7 +122,7 @@ def app_from_github(entry: dict, cache: dict[str, dict]) -> dict:
 
     tag = rel["tag_name"]
     version = re.sub(r"^(ios-|v)", "", tag, flags=re.IGNORECASE)
-    cached = cache.get(repo)
+    cached = cache.get(key)
 
     if cached and cached.get("_tag") == tag and cached.get("bundleIdentifier"):
         bundle_id = cached["bundleIdentifier"]
@@ -125,28 +141,31 @@ def app_from_github(entry: dict, cache: dict[str, dict]) -> dict:
         "date": date,
         "localizedDescription": (rel.get("body") or "")[:4000],
         "downloadURL": asset["browser_download_url"],
-        "size": asset["size"],
+        "size": asset.get("size") or 0,
     }
     if min_os:
         ver["minOSVersion"] = min_os
 
     owner = repo.split("/")[0]
-    return {
+    app = {
         "name": entry["name"],
         "bundleIdentifier": bundle_id,
         "developerName": owner,
-        "subtitle": entry.get("subtitle", f"From github.com/{repo}"),
-        "localizedDescription": entry.get("description", f"Built automatically from the latest release of github.com/{repo}."),
-        "iconURL": entry.get("icon", f"https://github.com/{owner}.png"),
+        "subtitle": entry.get("subtitle", f"From {host}/{repo}"),
+        "localizedDescription": entry.get("description", f"Built automatically from the latest release of {host}/{repo}."),
+        "iconURL": entry.get("icon", f"https://github.com/{owner}.png" if is_github else ""),
         "versions": [ver],
         # legacy top-level fields, still read by some installers
         "version": ver["version"],
         "versionDate": date,
         "downloadURL": ver["downloadURL"],
         "size": ver["size"],
-        "_repo": repo,
+        "_repo": key,
         "_tag": tag,
     }
+    if not app["iconURL"]:
+        del app["iconURL"]
+    return app
 
 
 def head(url: str) -> dict[str, str]:
@@ -243,8 +262,8 @@ def build(config: dict, previous: dict | None) -> tuple[dict, list[str]]:
             apps.append(a)
         except Exception as exc:
             errors.append(f"[github] {entry['name']}: {exc}")
-            if entry["repo"] in cache:
-                apps.append(cache[entry["repo"]])
+            if repo_key(entry) in cache:
+                apps.append(cache[repo_key(entry)])
 
     url_cache = {a["_url_key"]: a for a in (previous or {}).get("apps", []) if a.get("_url_key")}
     for entry in config.get("url", []):

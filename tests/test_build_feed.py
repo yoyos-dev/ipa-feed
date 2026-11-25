@@ -200,3 +200,45 @@ class BuildTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HostAndAssetTests(unittest.TestCase):
+    """Forgejo hosts (MeloNX) and picking one IPA out of several (Manic)."""
+
+    def test_forgejo_host_and_asset_choice(self):
+        calls = []
+        forgejo = [{"tag_name": "v1.9.0", "draft": False, "prerelease": False,
+                    "published_at": "2026-11-01T00:00:00Z", "body": "",
+                    "assets": [{"name": "MeloNX.ipa", "size": 5,
+                                "browser_download_url": "https://starforgejo.dev/dl/MeloNX.ipa"}]}]
+        manic = [{"tag_name": "v2.0.2", "draft": False, "prerelease": False,
+                  "published_at": "2026-11-20T00:00:00Z", "body": "",
+                  "assets": [{"name": "ManicEMU.v2.0.2.ipa", "size": 1, "browser_download_url": "https://dl/plain.ipa"},
+                             {"name": "ManicEMU.v2.0.2.SideloadJIT.ipa", "size": 2, "browser_download_url": "https://dl/jit.ipa"}]}]
+
+        def get_json(url, api=False):
+            calls.append((url, api))
+            if "starforgejo.dev/api/v1/repos/projects/MeloNX/releases" in url:
+                return forgejo
+            if url.startswith("https://api.github.com/repos/Manic-EMU/ManicEMU/"):
+                return manic
+            raise AssertionError(url)
+
+        ipas = {"https://starforgejo.dev/dl/MeloNX.ipa": fake_ipa("com.stossy11.MeloNX", "1.9.0"),
+                "https://dl/jit.ipa": fake_ipa("com.aoshuang.manicemu", "2.0.2")}
+        cfg = {"feed": {"name": "T", "identifier": "t"}, "github": [
+            {"name": "MeloNX", "host": "starforgejo.dev", "repo": "projects/MeloNX", "asset": r"\.ipa$"},
+            {"name": "Manic EMU", "repo": "Manic-EMU/ManicEMU", "asset": r"SideloadJIT\.ipa$"},
+        ]}
+        with mock.patch.object(build_feed, "get_json", get_json), \
+             mock.patch.object(build_feed, "http_get", lambda u, api=False, timeout=60: ipas[u]):
+            source, errors = build_feed.build(cfg, None)
+            again, _ = build_feed.build(cfg, source)  # cache keyed by host/repo
+        self.assertEqual(errors, [])
+        by = {a["name"]: a for a in source["apps"]}
+        self.assertEqual(by["MeloNX"]["bundleIdentifier"], "com.stossy11.MeloNX")
+        self.assertEqual(by["MeloNX"]["_repo"], "starforgejo.dev/projects/MeloNX")
+        self.assertNotIn("iconURL", by["MeloNX"])
+        self.assertEqual(by["Manic EMU"]["downloadURL"], "https://dl/jit.ipa")
+        self.assertIn(("https://starforgejo.dev/api/v1/repos/projects/MeloNX/releases?limit=30", False), calls)
+        self.assertEqual(len(again["apps"]), 2)

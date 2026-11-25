@@ -17,7 +17,7 @@ https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/ipa-feed/main/apps.json
 Edit `apps.toml`. Two kinds of entry:
 
 - `[[source]]`: the developer already publishes a source. Its apps are copied in.
-- `[[github]]`: no source exists. The newest release with a matching `.ipa` becomes the entry.
+- `[[github]]`: no source exists. The newest release with a matching `.ipa` becomes the entry. Add `host = "..."` for a Forgejo/Gitea server (e.g. MeloNX on starforgejo.dev).
   The IPA is downloaded once per version to read its bundle ID.
 
 Commit the change and the Action runs automatically.
