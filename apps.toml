@@ -12,8 +12,8 @@
 # Add or remove apps here, commit, and the next run picks it up.
 
 [feed]
-name = "Johan's Apps"
-identifier = "com.johan.ipafeed"
+name = "yoyos Apps"
+identifier = "com.yoyos.ipafeed"
 subtitle = "Everything I sideload, kept up to date automatically"
 
 # ---------------------------------------------------------------- official sources
@@ -48,10 +48,6 @@ url = "https://muffinemu.github.io/MuffinEMU/apps.json"
 # now; its iPhone source is an empty placeholder. Regular Mario 64 (Ghostship)
 # comes from the ports source below. If an iPhone build ships, add:
 #   url = "https://raw.githubusercontent.com/rebelancap/sm64coopdx-ios/main/sidestore/apps-ios.json"
-
-[[source]]
-name = "rebelancap ports (Zelda, Mario, GoldenEye, Quake...)"
-url = "https://raw.githubusercontent.com/rebelancap/all-ports/main/apps-ios.json"
 
 # ---------------------------------------------------------------- built from GitHub releases
 
